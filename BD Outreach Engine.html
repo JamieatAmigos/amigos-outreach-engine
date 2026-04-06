@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amigos BD Outreach Engine</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9f9f7; color: #1a1a1a; padding: 2rem; }
+.container { max-width: 820px; margin: 0 auto; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
+.sub { font-size: 13px; color: #666; margin-bottom: 2rem; }
+.sec { margin-bottom: 1.25rem; }
+.lbl { font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+textarea { width: 100%; min-height: 90px; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 0.5px solid #ccc; border-radius: 8px; background: #fff; color: #1a1a1a; resize: vertical; }
+textarea:focus { outline: none; border-color: #888; }
+.drop { border: 0.5px dashed #ccc; border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; background: #f5f5f3; }
+.drop:hover { border-color: #888; }
+.drop-lbl { font-size: 13px; color: #666; }
+.drop-lbl b { color: #1a1a1a; font-weight: 500; }
+.tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.tab { font-size: 12px; padding: 4px 10px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; color: #666; cursor: pointer; }
+.tab.on { border-color: #888; color: #1a1a1a; font-weight: 500; }
+.plays { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.play { border: 0.5px solid #ddd; border-radius: 8px; padding: 10px 12px; cursor: pointer; background: #fff; }
+.play:hover { border-color: #aaa; }
+.play.on { border: 1.5px solid #185FA5; background: #E6F1FB; }
+.pt { font-size: 13px; font-weight: 500; color: #1a1a1a; }
+.pd { font-size: 12px; color: #666; margin-top: 3px; line-height: 1.4; }
+.play.on .pt { color: #0C447C; }
+.play.on .pd { color: #185FA5; }
+.gen { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; border: 0.5px solid #ccc; border-radius: 8px; background: #fff; color: #1a1a1a; cursor: pointer; margin-top: 4px; }
+.gen:hover { background: #f5f5f3; }
+.gen:disabled { opacity: 0.45; cursor: not-allowed; }
+.otabs { display: flex; gap: 8px; margin-bottom: 10px; }
+.otab { padding: 5px 14px; font-size: 13px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; color: #666; cursor: pointer; }
+.otab.on { border-color: #888; color: #1a1a1a; font-weight: 500; }
+.out { background: #f5f5f3; border: 0.5px solid #ddd; border-radius: 8px; padding: 1rem 1.25rem; min-height: 130px; font-size: 14px; line-height: 1.7; color: #1a1a1a; white-space: pre-wrap; }
+.out.empty { color: #aaa; font-style: italic; }
+.row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.copy { font-size: 12px; padding: 4px 10px; border: 0.5px solid #ccc; border-radius: 8px; background: #fff; color: #666; cursor: pointer; }
+.copy:hover { color: #1a1a1a; }
+.api-row { display: flex; gap: 8px; align-items: center; }
+.api-in { flex: 1; padding: 8px 12px; font-size: 13px; font-family: monospace; border: 0.5px solid #ccc; border-radius: 8px; background: #fff; color: #1a1a1a; }
+.api-in:focus { outline: none; border-color: #888; }
+.save-btn { font-size: 12px; padding: 8px 14px; border: 0.5px solid #ccc; border-radius: 8px; background: #fff; color: #555; cursor: pointer; white-space: nowrap; }
+.save-btn:hover { color: #1a1a1a; }
+.hr { border: none; border-top: 0.5px solid #e0e0e0; margin: 1.25rem 0; }
+.st { font-size: 12px; color: #666; margin-top: 5px; min-height: 16px; }
+.st.err { color: #c0392b; }
+.st.ok { color: #27ae60; }
+@media (max-width: 600px) { .plays { grid-template-columns: 1fr; } body { padding: 1rem; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Amigos BD Outreach Engine</h1>
+  <p class="sub">Generate personalised outreach for hiring managers using your play framework</p>
+
+  <div class="sec">
+    <div class="lbl">Anthropic API key</div>
+    <div class="api-row">
+      <input type="password" class="api-in" id="apiKey" placeholder="sk-ant-..." />
+      <button class="save-btn" onclick="saveKey()">Save key</button>
+    </div>
+    <div class="st" id="keySt"></div>
+  </div>
+
+  <hr class="hr" />
+
+  <div class="sec">
+    <div class="lbl">Job spec</div>
+    <div class="tabs">
+      <button class="tab on" onclick="sw('job','paste',this)">Paste text</button>
+      <button class="tab" onclick="sw('job','file',this)">Upload file</button>
+    </div>
+    <div id="job-paste">
+      <textarea id="jobTxt" placeholder="Paste the job spec here..."></textarea>
+    </div>
+    <div id="job-file" style="display:none">
+      <div class="drop" onclick="document.getElementById('jf').click()">
+        <div class="drop-lbl"><b>Click to upload</b> or drag and drop</div>
+        <div class="drop-lbl" style="margin-top:3px">PDF or text file</div>
+        <input type="file" id="jf" style="display:none" accept=".pdf,.txt,.doc,.docx" />
+      </div>
+      <div class="st" id="jfSt"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="lbl">Hiring manager LinkedIn profile</div>
+    <div class="tabs">
+      <button class="tab on" onclick="sw('hm','paste',this)">Paste text</button>
+      <button class="tab" onclick="sw('hm','file',this)">Upload file</button>
+    </div>
+    <div id="hm-paste">
+      <textarea id="hmTxt" placeholder="Paste the hiring manager's LinkedIn profile text here..."></textarea>
+    </div>
+    <div id="hm-file" style="display:none">
+      <div class="drop" onclick="document.getElementById('hmf').click()">
+        <div class="drop-lbl"><b>Click to upload</b> or drag and drop</div>
+        <div class="drop-lbl" style="margin-top:3px">PDF or text file</div>
+        <input type="file" id="hmf" style="display:none" accept=".pdf,.txt,.doc,.docx" />
+      </div>
+      <div class="st" id="hmfSt"></div>
+    </div>
+  </div>
+
+  <hr class="hr" />
+
+  <div class="sec">
+    <div class="lbl">Select plays to apply</div>
+    <div class="plays">
+      <div class="play" id="p1" onclick="tp(1)">
+        <div class="pt">Active job (30+ days)</div>
+        <div class="pd">Role has been open a while - they're struggling to hire</div>
+      </div>
+      <div class="play" id="p2" onclick="tp(2)">
+        <div class="pt">Case study lookalike</div>
+        <div class="pd">Similar company to a previous Amigos client</div>
+      </div>
+      <div class="play" id="p3" onclick="tp(3)">
+        <div class="pt">New decision maker</div>
+        <div class="pd">New VP / Head of TA / CTO has just joined</div>
+      </div>
+      <div class="play" id="p4" onclick="tp(4)">
+        <div class="pt">Growth signal</div>
+        <div class="pd">Recent funding round or expansion announced</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <button class="gen" id="genBtn" onclick="gen()">Generate outreach</button>
+    <div class="st" id="genSt"></div>
+  </div>
+
+  <hr class="hr" />
+
+  <div class="sec">
+    <div class="row">
+      <div class="otabs">
+        <button class="otab on" id="oe" onclick="so('email')">Email</button>
+        <button class="otab" id="ol" onclick="so('linkedin')">LinkedIn</button>
+      </div>
+      <button class="copy" onclick="cp()">Copy</button>
+    </div>
+    <div class="out empty" id="outBox">Your outreach message will appear here once generated.</div>
+  </div>
+</div>
+
+<script>
+var sel=[], eOut='', lOut='', curTab='email', jFile='', hmFile='';
+
+function saveKey(){
+  var k=document.getElementById('apiKey').value.trim();
+  if(!k){setSt('keySt','Enter a key first',1);return;}
+  try{localStorage.setItem('amigos_ak',k);setSt('keySt','Key saved',0,1);}
+  catch(e){setSt('keySt','Could not save - re-enter each session',1);}
+}
+
+(function(){
+  try{
+    var k=localStorage.getItem('amigos_ak');
+    if(k){document.getElementById('apiKey').value=k;setSt('keySt','Key loaded',0,1);}
+  }catch(e){}
+})();
+
+function sw(field,mode,btn){
+  btn.parentElement.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  btn.classList.add('on');
+  document.getElementById(field+'-paste').style.display=mode==='paste'?'block':'none';
+  document.getElementById(field+'-file').style.display=mode==='file'?'block':'none';
+}
+
+function tp(n){
+  var c=document.getElementById('p'+n),i=sel.indexOf(n);
+  if(i>-1){sel.splice(i,1);c.classList.remove('on');}
+  else{sel.push(n);c.classList.add('on');}
+}
+
+function so(t){
+  curTab=t;
+  document.getElementById('oe').classList.toggle('on',t==='email');
+  document.getElementById('ol').classList.toggle('on',t==='linkedin');
+  var b=document.getElementById('outBox'),c=t==='email'?eOut:lOut;
+  if(c){b.textContent=c;b.classList.remove('empty');}
+  else{b.textContent='Your outreach message will appear here once generated.';b.classList.add('empty');}
+}
+
+function cp(){
+  var c=curTab==='email'?eOut:lOut;
+  if(c)navigator.clipboard.writeText(c).catch(function(){});
+}
+
+function setupDrop(dropId,fileId,stId,field){
+  var drop=document.getElementById(dropId);
+  var fi=document.getElementById(fileId);
+  if(!drop||!fi)return;
+  drop.addEventListener('dragover',function(e){e.preventDefault();drop.style.borderColor='#888';});
+  drop.addEventListener('dragleave',function(){drop.style.borderColor='';});
+  drop.addEventListener('drop',function(e){
+    e.preventDefault();drop.style.borderColor='';
+    if(e.dataTransfer.files[0])hfile(e.dataTransfer.files[0],stId,field);
+  });
+  fi.addEventListener('change',function(){if(fi.files[0])hfile(fi.files[0],stId,field);});
+}
+
+function hfile(file,stId,field){
+  var s=document.getElementById(stId);
+  s.textContent='Reading '+file.name+'...';s.className='st';
+  var r=new FileReader();
+  r.onload=function(e){
+    if(field==='job')jFile=e.target.result;
+    else hmFile=e.target.result;
+    s.textContent=file.name+' loaded';
+  };
+  r.onerror=function(){s.textContent='Could not read file - try pasting instead';s.className='st err';};
+  r.readAsText(file);
+}
+
+setupDrop('job-file','jf','jfSt','job');
+setupDrop('hm-file','hmf','hmfSt','hm');
+
+var pNames={
+  1:'Active job (30+ days open)',
+  2:'Case study lookalike',
+  3:'New decision maker',
+  4:'Growth signal (funding/expansion)'
+};
+
+var cs='Levelpath: Series B, San Francisco, hired Software Engineers for a procurement platform.\n'+
+'Abridge: Series B, AI health tech, hired ML Engineers and senior technical talent.\n'+
+'Fleet AI: Early stage AI infrastructure, hired founding engineering team.\n'+
+'BioRender: Series B, life sciences SaaS, hired senior engineers across a scaling tech team.\n'+
+'Axiomatic AI: Early stage AI, hired founding technical team.\n'+
+'Baanx: FinTech scaleup, hired Software Engineers across London and remote.\n'+
+'Deltatre / DAZN: CTV and sports tech, hired engineering teams across multiple locations.\n'+
+'TitanOS: Early stage, hired founding engineers.\n'+
+'Accedo: CTV platform, hired technical talent.\n'+
+'Jennis: Digital health, hired engineering team.';
+
+async function gen(){
+  var ak=document.getElementById('apiKey').value.trim();
+  if(!ak){setSt('genSt','Please enter your Anthropic API key',1);return;}
+  if(!sel.length){setSt('genSt','Please select at least one play',1);return;}
+  var jt=document.getElementById('jobTxt').value.trim()||jFile;
+  var ht=document.getElementById('hmTxt').value.trim()||hmFile;
+  if(!jt){setSt('genSt','Please provide the job spec',1);return;}
+  if(!ht){setSt('genSt','Please provide the hiring manager profile',1);return;}
+
+  var plays=sel.map(function(n){return pNames[n];}).join(', ');
+  var btn=document.getElementById('genBtn');
+  btn.disabled=true;
+  setSt('genSt','Generating your outreach messages...',0);
+
+  var prompt='You are writing BD outreach on behalf of Jd at Amigos.\n\n'+
+'ABOUT AMIGOS:\n'+
+'Amigos is an ethical talent partner for VC and YC-backed startups scaling their tech teams. We specialise in Software Engineers, ML Engineers and technical roles across London, Barcelona and San Francisco.\n\n'+
+'Value proposition: Top 1% tech talent, hired in 2-4 weeks. For founders who can\'t afford to get it wrong. Amigos brings 13 years of deep tech recruiting experience, a proprietary system for identifying candidates from elite companies before they start looking, and sector expertise across AI, FinTech and CTV that generalist recruiters don\'t understand. From founding teams to 150-person scaleups - we build the teams that build the companies.\n\n'+
+'CASE STUDIES (reference the most relevant one only if it genuinely adds value):\n'+cs+'\n\n'+
+'JOB SPEC:\n'+jt+'\n\n'+
+'HIRING MANAGER PROFILE:\n'+ht+'\n\n'+
+'PLAYS TO APPLY: '+plays+'\n\n'+
+'TONE OF VOICE RULES:\n'+
+'- Direct, warm, confident. No fluff.\n'+
+'- Short sentences. Scannable.\n'+
+'- No buzzwords. No "I hope this finds you well". No "excited to" or "passionate about".\n'+
+'- No em dashes - use hyphens only.\n'+
+'- Never say "We Are Amigos" - always just "Amigos".\n'+
+'- Write as Jd, not as a company. First person singular.\n'+
+'- Sign off as Jd.\n'+
+'- Do not start with the hiring manager\'s name.\n\n'+
+'OUTPUT FORMAT - return exactly this structure:\n\n'+
+'EMAIL SUBJECT:\n[subject line]\n\n'+
+'EMAIL BODY:\n[4-5 lines for single play, up to 7 for multiple plays. End with one low-friction question CTA - never "lets jump on a call".]\n\n'+
+'LINKEDIN MESSAGE:\n[2-3 lines max. Same hook, tighter. No subject line.]\n\n'+
+'PLAY NOTES:\n[One sentence on which play(s) you led with and why.]';
+
+  try{
+    var response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':ak,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-opus-4-6',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+
+    var data=await response.json();
+
+    if(!response.ok){
+      setSt('genSt','Error: '+(data.error&&data.error.message?data.error.message:'check your API key'),1);
+      btn.disabled=false;
+      return;
+    }
+
+    var txt=data.content&&data.content[0]?data.content[0].text:'';
+    var subj=extr(txt,'EMAIL SUBJECT:','EMAIL BODY:');
+    var body=extr(txt,'EMAIL BODY:','LINKEDIN MESSAGE:');
+    var li=extr(txt,'LINKEDIN MESSAGE:','PLAY NOTES:');
+    var notes=extr(txt,'PLAY NOTES:',null);
+
+    eOut=(subj?'Subject: '+subj.trim()+'\n\n':'')+body.trim()+(notes?'\n\n---\nPlay rationale: '+notes.trim():'');
+    lOut=li.trim()+(notes?'\n\n---\nPlay rationale: '+notes.trim():'');
+
+    so(curTab);
+    setSt('genSt','Done',0,1);
+  }catch(e){
+    setSt('genSt','Request failed - check your API key and try again',1);
+  }
+
+  btn.disabled=false;
+}
+
+function extr(t,s,e){
+  var si=t.indexOf(s);if(si===-1)return '';
+  si+=s.length;
+  if(e){var ei=t.indexOf(e,si);return ei===-1?t.slice(si):t.slice(si,ei);}
+  return t.slice(si);
+}
+
+function setSt(id,msg,isErr,isOk){
+  var el=document.getElementById(id);
+  el.textContent=msg;
+  el.className='st'+(isErr?' err':isOk?' ok':'');
+}
+</script>
+</body>
+</html>
