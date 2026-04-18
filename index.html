@@ -14,21 +14,31 @@ h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
 .lbl { font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
 textarea { width: 100%; min-height: 90px; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 0.5px solid #ccc; border-radius: 8px; background: #fff; color: #1a1a1a; resize: vertical; }
 textarea:focus { outline: none; border-color: #888; }
-.drop { border: 0.5px dashed #ccc; border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; background: #f5f5f3; }
+.drop { border: 0.5px dashed #ccc; border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; background: #f5f5f3; transition: border-color 0.15s; }
 .drop:hover { border-color: #888; }
+.drop.dragover { border-color: #185FA5; background: #E6F1FB; }
 .drop-lbl { font-size: 13px; color: #666; }
 .drop-lbl b { color: #1a1a1a; font-weight: 500; }
-.tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.drop-filename { font-size: 12px; color: #185FA5; margin-top: 4px; font-weight: 500; min-height: 16px; }
+.tabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
 .tab { font-size: 12px; padding: 4px 10px; border: 0.5px solid #ddd; border-radius: 8px; background: #fff; color: #666; cursor: pointer; }
 .tab.on { border-color: #888; color: #1a1a1a; font-weight: 500; }
 .plays { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.play { border: 0.5px solid #ddd; border-radius: 8px; padding: 10px 12px; cursor: pointer; background: #fff; }
+.play { border: 0.5px solid #ddd; border-radius: 8px; padding: 10px 12px; cursor: pointer; background: #fff; transition: border-color 0.15s; }
 .play:hover { border-color: #aaa; }
 .play.on { border: 1.5px solid #185FA5; background: #E6F1FB; }
+.play.pitch { grid-column: 1 / -1; }
+.play.pitch.on { border: 1.5px solid #854F0B; background: #FAEEDA; }
 .pt { font-size: 13px; font-weight: 500; color: #1a1a1a; }
 .pd { font-size: 12px; color: #666; margin-top: 3px; line-height: 1.4; }
 .play.on .pt { color: #0C447C; }
 .play.on .pd { color: #185FA5; }
+.play.pitch.on .pt { color: #633806; }
+.play.pitch.on .pd { color: #854F0B; }
+.badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 500; margin-left: 6px; background: #FAEEDA; color: #854F0B; vertical-align: middle; }
+.pitch-section { border: 0.5px solid #e8d5b0; border-radius: 8px; padding: 1rem 1.25rem; background: #fffdf9; margin-top: 8px; display: none; }
+.pitch-section.visible { display: block; }
+.pitch-divider { font-size: 11px; color: #854F0B; text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 0.75rem; font-weight: 600; }
 .gen { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; border: 0.5px solid #ccc; border-radius: 8px; background: #fff; color: #1a1a1a; cursor: pointer; margin-top: 4px; }
 .gen:hover { background: #f5f5f3; }
 .gen:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -49,7 +59,8 @@ textarea:focus { outline: none; border-color: #888; }
 .st { font-size: 12px; color: #666; margin-top: 5px; min-height: 16px; }
 .st.err { color: #c0392b; }
 .st.ok { color: #27ae60; }
-@media (max-width: 600px) { .plays { grid-template-columns: 1fr; } body { padding: 1rem; } }
+.hint { font-size: 12px; color: #aaa; margin-top: 4px; }
+@media (max-width: 600px) { .plays { grid-template-columns: 1fr; } .play.pitch { grid-column: 1; } body { padding: 1rem; } }
 </style>
 </head>
 <body>
@@ -78,9 +89,10 @@ textarea:focus { outline: none; border-color: #888; }
       <textarea id="jobTxt" placeholder="Paste the job spec here..."></textarea>
     </div>
     <div id="job-file" style="display:none">
-      <div class="drop" onclick="document.getElementById('jf').click()">
+      <div class="drop" id="jobDrop" onclick="document.getElementById('jf').click()">
         <div class="drop-lbl"><b>Click to upload</b> or drag and drop</div>
         <div class="drop-lbl" style="margin-top:3px">PDF or text file</div>
+        <div class="drop-filename" id="jfName"></div>
         <input type="file" id="jf" style="display:none" accept=".pdf,.txt,.doc,.docx" />
       </div>
       <div class="st" id="jfSt"></div>
@@ -97,9 +109,10 @@ textarea:focus { outline: none; border-color: #888; }
       <textarea id="hmTxt" placeholder="Paste the hiring manager's LinkedIn profile text here..."></textarea>
     </div>
     <div id="hm-file" style="display:none">
-      <div class="drop" onclick="document.getElementById('hmf').click()">
+      <div class="drop" id="hmDrop" onclick="document.getElementById('hmf').click()">
         <div class="drop-lbl"><b>Click to upload</b> or drag and drop</div>
         <div class="drop-lbl" style="margin-top:3px">PDF or text file</div>
+        <div class="drop-filename" id="hmfName"></div>
         <input type="file" id="hmf" style="display:none" accept=".pdf,.txt,.doc,.docx" />
       </div>
       <div class="st" id="hmfSt"></div>
@@ -127,6 +140,38 @@ textarea:focus { outline: none; border-color: #888; }
         <div class="pt">Growth signal</div>
         <div class="pd">Recent funding round or expansion announced</div>
       </div>
+      <div class="play pitch" id="p5" onclick="tp(5)">
+        <div class="pt">Pitch candidate <span class="badge">New</span></div>
+        <div class="pd">Match a specific candidate to this role and pitch them directly to the hiring manager — anonymously</div>
+      </div>
+    </div>
+
+    <div class="pitch-section" id="pitchSection">
+      <div class="pitch-divider">Candidate details</div>
+      <div class="sec" style="margin-bottom:1rem">
+        <div class="lbl">Candidate CV / profile</div>
+        <div class="tabs">
+          <button class="tab on" onclick="sw('cv','paste',this)">Paste text</button>
+          <button class="tab" onclick="sw('cv','file',this)">Upload CV (PDF)</button>
+        </div>
+        <div id="cv-paste">
+          <textarea id="cvTxt" placeholder="Paste candidate CV, LinkedIn profile text, or bio here..." style="min-height:110px"></textarea>
+        </div>
+        <div id="cv-file" style="display:none">
+          <div class="drop" id="cvDrop" onclick="document.getElementById('cvf').click()">
+            <div class="drop-lbl"><b>Click to upload CV</b> or drag and drop</div>
+            <div class="drop-lbl" style="margin-top:3px">PDF preferred</div>
+            <div class="drop-filename" id="cvfName"></div>
+            <input type="file" id="cvf" style="display:none" accept=".pdf,.txt,.doc,.docx" />
+          </div>
+          <div class="st" id="cvfSt"></div>
+        </div>
+      </div>
+      <div class="sec" style="margin-bottom:0">
+        <div class="lbl">Additional context (optional)</div>
+        <textarea id="pitchCtx" placeholder="e.g. Open to Series A/B only. 3 months notice. Remote-first preferred. London-based." style="min-height:60px"></textarea>
+        <div class="hint">Use this to add any constraints or preferences that should shape the pitch.</div>
+      </div>
     </div>
   </div>
 
@@ -150,7 +195,10 @@ textarea:focus { outline: none; border-color: #888; }
 </div>
 
 <script>
-var sel=[], eOut='', lOut='', curTab='email', jFile='', hmFile='';
+var sel=[], eOut='', lOut='', curTab='email';
+var jFile='', jFileBase64='', jFileType='';
+var hmFile='';
+var cvFile='', cvFileBase64='', cvFileType='';
 
 function saveKey(){
   var k=document.getElementById('apiKey').value.trim();
@@ -158,32 +206,31 @@ function saveKey(){
   try{localStorage.setItem('amigos_ak',k);setSt('keySt','Key saved',0,1);}
   catch(e){setSt('keySt','Could not save - re-enter each session',1);}
 }
-
 (function(){
-  try{
-    var k=localStorage.getItem('amigos_ak');
-    if(k){document.getElementById('apiKey').value=k;setSt('keySt','Key loaded',0,1);}
-  }catch(e){}
+  try{var k=localStorage.getItem('amigos_ak');if(k){document.getElementById('apiKey').value=k;setSt('keySt','Key loaded',0,1);}}catch(e){}
 })();
 
 function sw(field,mode,btn){
   btn.parentElement.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
   btn.classList.add('on');
-  document.getElementById(field+'-paste').style.display=mode==='paste'?'block':'none';
-  document.getElementById(field+'-file').style.display=mode==='file'?'block':'none';
+  ['paste','file'].forEach(function(m){
+    var el=document.getElementById(field+'-'+m);
+    if(el)el.style.display=(m===mode)?'block':'none';
+  });
 }
 
 function tp(n){
-  var c=document.getElementById('p'+n),i=sel.indexOf(n);
+  var c=document.getElementById('p'+n), i=sel.indexOf(n);
   if(i>-1){sel.splice(i,1);c.classList.remove('on');}
   else{sel.push(n);c.classList.add('on');}
+  document.getElementById('pitchSection').classList.toggle('visible', sel.indexOf(5)>-1);
 }
 
 function so(t){
   curTab=t;
   document.getElementById('oe').classList.toggle('on',t==='email');
   document.getElementById('ol').classList.toggle('on',t==='linkedin');
-  var b=document.getElementById('outBox'),c=t==='email'?eOut:lOut;
+  var b=document.getElementById('outBox'), c=t==='email'?eOut:lOut;
   if(c){b.textContent=c;b.classList.remove('empty');}
   else{b.textContent='Your outreach message will appear here once generated.';b.classList.add('empty');}
 }
@@ -193,113 +240,126 @@ function cp(){
   if(c)navigator.clipboard.writeText(c).catch(function(){});
 }
 
-function setupDrop(dropId,fileId,stId,field){
-  var drop=document.getElementById(dropId);
-  var fi=document.getElementById(fileId);
+function processFile(file, nameId, stId, field){
+  var nameEl=document.getElementById(nameId);
+  var stEl=document.getElementById(stId);
+  if(stEl)stEl.textContent='Reading '+file.name+'...';
+  var isPDF=(file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf'));
+  if(isPDF){
+    var r=new FileReader();
+    r.onload=function(e){
+      var b64=e.target.result.split(',')[1];
+      if(field==='job'){jFileBase64=b64;jFileType='pdf';jFile='';}
+      else if(field==='cv'){cvFileBase64=b64;cvFileType='pdf';cvFile='';}
+      if(nameEl)nameEl.textContent=file.name;
+      if(stEl)stEl.textContent='';
+    };
+    r.onerror=function(){if(stEl)stEl.textContent='Could not read PDF';};
+    r.readAsDataURL(file);
+  } else {
+    var r2=new FileReader();
+    r2.onload=function(e){
+      if(field==='job'){jFile=e.target.result;jFileBase64='';jFileType='text';}
+      else if(field==='hm'){hmFile=e.target.result;}
+      else if(field==='cv'){cvFile=e.target.result;cvFileBase64='';cvFileType='text';}
+      if(nameEl)nameEl.textContent=file.name;
+      if(stEl)stEl.textContent='';
+    };
+    r2.onerror=function(){if(stEl)stEl.textContent='Could not read file - try pasting instead';};
+    r2.readAsText(file);
+  }
+}
+
+function setupDrop(dropId, fileId, nameId, stId, field){
+  var drop=document.getElementById(dropId), fi=document.getElementById(fileId);
   if(!drop||!fi)return;
-  drop.addEventListener('dragover',function(e){e.preventDefault();drop.style.borderColor='#888';});
-  drop.addEventListener('dragleave',function(){drop.style.borderColor='';});
-  drop.addEventListener('drop',function(e){
-    e.preventDefault();drop.style.borderColor='';
-    if(e.dataTransfer.files[0])hfile(e.dataTransfer.files[0],stId,field);
-  });
-  fi.addEventListener('change',function(){if(fi.files[0])hfile(fi.files[0],stId,field);});
+  drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('dragover');});
+  drop.addEventListener('dragleave',function(){drop.classList.remove('dragover');});
+  drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('dragover');if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0],nameId,stId,field);});
+  fi.addEventListener('change',function(){if(fi.files[0])processFile(fi.files[0],nameId,stId,field);});
 }
 
-function hfile(file,stId,field){
-  var s=document.getElementById(stId);
-  s.textContent='Reading '+file.name+'...';s.className='st';
-  var r=new FileReader();
-  r.onload=function(e){
-    if(field==='job')jFile=e.target.result;
-    else hmFile=e.target.result;
-    s.textContent=file.name+' loaded';
-  };
-  r.onerror=function(){s.textContent='Could not read file - try pasting instead';s.className='st err';};
-  r.readAsText(file);
-}
+setupDrop('jobDrop','jf','jfName','jfSt','job');
+setupDrop('hmDrop','hmf','hmfName','hmfSt','hm');
+setupDrop('cvDrop','cvf','cvfName','cvfSt','cv');
 
-setupDrop('job-file','jf','jfSt','job');
-setupDrop('hm-file','hmf','hmfSt','hm');
+var pNames={1:'Active job (30+ days open)',2:'Case study lookalike',3:'New decision maker',4:'Growth signal (funding/expansion)',5:'Pitch candidate'};
 
-var pNames={
-  1:'Active job (30+ days open)',
-  2:'Case study lookalike',
-  3:'New decision maker',
-  4:'Growth signal (funding/expansion)'
-};
-
-var cs='Levelpath: Series B, San Francisco, hired Software Engineers for a procurement platform.\n'+
-'Abridge: Series B, AI health tech, hired ML Engineers and senior technical talent.\n'+
-'Fleet AI: Early stage AI infrastructure, hired founding engineering team.\n'+
-'BioRender: Series B, life sciences SaaS, hired senior engineers across a scaling tech team.\n'+
-'Axiomatic AI: Early stage AI, hired founding technical team.\n'+
-'Baanx: FinTech scaleup, hired Software Engineers across London and remote.\n'+
-'Deltatre / DAZN: CTV and sports tech, hired engineering teams across multiple locations.\n'+
-'TitanOS: Early stage, hired founding engineers.\n'+
-'Accedo: CTV platform, hired technical talent.\n'+
-'Jennis: Digital health, hired engineering team.';
+var cs='Levelpath: Series B, San Francisco, hired Software Engineers for a procurement platform.\nAbridge: Series B, AI health tech, hired ML Engineers and senior technical talent.\nFleet AI: Early stage AI infrastructure, hired founding engineering team.\nBioRender: Series B, life sciences SaaS, hired senior engineers across a scaling tech team.\nAxiomatic AI: Early stage AI, hired founding technical team.\nBaanx: FinTech scaleup, hired Software Engineers across London and remote.\nDeltare / DAZN: CTV and sports tech, hired engineering teams across multiple locations.\nTitanOS: Early stage, hired founding engineers.\nAccedo: CTV platform, hired technical talent.\nJennis: Digital health, hired engineering team.';
 
 async function gen(){
   var ak=document.getElementById('apiKey').value.trim();
   if(!ak){setSt('genSt','Please enter your Anthropic API key',1);return;}
   if(!sel.length){setSt('genSt','Please select at least one play',1);return;}
+
   var jt=document.getElementById('jobTxt').value.trim()||jFile;
   var ht=document.getElementById('hmTxt').value.trim()||hmFile;
-  if(!jt){setSt('genSt','Please provide the job spec',1);return;}
+  if(!jt&&!jFileBase64){setSt('genSt','Please provide the job spec',1);return;}
   if(!ht){setSt('genSt','Please provide the hiring manager profile',1);return;}
+
+  var isPitch=sel.indexOf(5)>-1;
+  var cvText=document.getElementById('cvTxt').value.trim()||cvFile;
+  var pitchCtx=document.getElementById('pitchCtx')?document.getElementById('pitchCtx').value.trim():'';
+
+  if(isPitch&&!cvText&&!cvFileBase64){setSt('genSt','Please provide the candidate CV or profile for the Pitch Candidate play',1);return;}
 
   var plays=sel.map(function(n){return pNames[n];}).join(', ');
   var btn=document.getElementById('genBtn');
   btn.disabled=true;
   setSt('genSt','Generating your outreach messages...',0);
 
-  var prompt='You are writing BD outreach on behalf of Jd at Amigos.\n\n'+
-'ABOUT AMIGOS:\n'+
-'Amigos is an ethical talent partner for VC and YC-backed startups scaling their tech teams. We specialise in Software Engineers, ML Engineers and technical roles across London, Barcelona and San Francisco.\n\n'+
+  var pitchInstructions='';
+  if(isPitch){
+    pitchInstructions='CANDIDATE PROFILE:\n'+(cvFileBase64?'[See attached PDF candidate CV]':cvText)+'\n\n'+
+    (pitchCtx?'ADDITIONAL CANDIDATE CONTEXT:\n'+pitchCtx+'\n\n':'')+
+    'PITCH CANDIDATE PLAY INSTRUCTIONS:\n'+
+    'Pitch this specific candidate to the hiring manager. Rules:\n'+
+    '1. Read the job spec carefully. Identify the 2-3 hardest skills to find in the market for this role.\n'+
+    '2. Match those hard-to-find skills directly to the candidate\'s actual experience - be specific, not generic.\n'+
+    '3. Keep the candidate completely anonymous - no name, no current employer, no identifying details.\n'+
+    '4. Reference how long the role has been open if it is apparent from context - if not, skip it.\n'+
+    '5. Create intrigue - enough detail to make them want to know more, not so much they don\'t need to respond.\n'+
+    '6. End with a clear question: would they want an introduction or to see the CV?\n\n'+
+    'Template to adapt (do not follow robotically - adapt naturally based on the actual content):\n'+
+    '"Hi [HM first name],\n\nI noticed [role] has been open for [time if known]. How have you found recruiting for this role?\n\nI know [specific hard skill] is hard to find.\n\nI know someone who has [specific matched experience from candidate profile] and is passively looking. Would you be interested in an introduction or seeing their CV?"\n\n';
+  }
+
+  var promptText='You are writing BD outreach on behalf of Jd at Amigos.\n\n'+
+'ABOUT AMIGOS:\nAmigos is an ethical talent partner for VC and YC-backed startups scaling their tech teams. We specialise in Software Engineers, ML Engineers and technical roles across London, Barcelona and San Francisco.\n\n'+
 'Value proposition: Top 1% tech talent, hired in 2-4 weeks. For founders who can\'t afford to get it wrong. Amigos brings 13 years of deep tech recruiting experience, a proprietary system for identifying candidates from elite companies before they start looking, and sector expertise across AI, FinTech and CTV that generalist recruiters don\'t understand. From founding teams to 150-person scaleups - we build the teams that build the companies.\n\n'+
 'CASE STUDIES (reference the most relevant one only if it genuinely adds value):\n'+cs+'\n\n'+
-'JOB SPEC:\n'+jt+'\n\n'+
+'JOB SPEC:\n'+(jFileBase64?'[See attached PDF job spec]':jt)+'\n\n'+
 'HIRING MANAGER PROFILE:\n'+ht+'\n\n'+
 'PLAYS TO APPLY: '+plays+'\n\n'+
-'TONE OF VOICE RULES:\n'+
+pitchInstructions+
+'TONE OF VOICE:\n'+
 '- Direct, warm, confident. No fluff.\n'+
 '- Short sentences. Scannable.\n'+
-'- No buzzwords. No "I hope this finds you well". No "excited to" or "passionate about".\n'+
-'- No em dashes - use hyphens only.\n'+
-'- Never say "We Are Amigos" - always just "Amigos".\n'+
-'- Write as Jd, not as a company. First person singular.\n'+
-'- Sign off as Jd.\n'+
-'- Do not start with the hiring manager\'s name.\n\n'+
-'OUTPUT FORMAT - return exactly this structure:\n\n'+
+'- No "I hope this finds you well". No "excited to". No buzzwords.\n'+
+'- No em dashes - hyphens only.\n'+
+'- Always "Amigos" never "We Are Amigos".\n'+
+'- First person singular. Sign off as Jd.\n'+
+'- Do not open with the hiring manager\'s name as the very first word.\n\n'+
+'OUTPUT FORMAT:\n\n'+
 'EMAIL SUBJECT:\n[subject line]\n\n'+
-'EMAIL BODY:\n[4-5 lines for single play, up to 7 for multiple plays. End with one low-friction question CTA - never "lets jump on a call".]\n\n'+
-'LINKEDIN MESSAGE:\n[2-3 lines max. Same hook, tighter. No subject line.]\n\n'+
+'EMAIL BODY:\n['+(isPitch?'Follow the pitch candidate format. 5-7 lines. End with the introduction/CV question.':'4-5 lines single play, up to 7 for multiple. End with one low-friction question CTA.')+'] \n\n'+
+'LINKEDIN MESSAGE:\n[2-3 lines max. Same hook, tighter.]\n\n'+
 'PLAY NOTES:\n[One sentence on which play(s) you led with and why.]';
 
   try{
+    var userContent=[];
+    if(jFileBase64)userContent.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:jFileBase64}});
+    if(cvFileBase64&&isPitch)userContent.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:cvFileBase64}});
+    userContent.push({type:'text',text:promptText});
+
     var response=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':ak,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-opus-4-6',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
+      headers:{'Content-Type':'application/json','x-api-key':ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-6',max_tokens:1200,messages:[{role:'user',content:userContent}]})
     });
 
     var data=await response.json();
-
-    if(!response.ok){
-      setSt('genSt','Error: '+(data.error&&data.error.message?data.error.message:'check your API key'),1);
-      btn.disabled=false;
-      return;
-    }
+    if(!response.ok){setSt('genSt','Error: '+(data.error&&data.error.message?data.error.message:'check your API key'),1);btn.disabled=false;return;}
 
     var txt=data.content&&data.content[0]?data.content[0].text:'';
     var subj=extr(txt,'EMAIL SUBJECT:','EMAIL BODY:');
@@ -309,13 +369,11 @@ async function gen(){
 
     eOut=(subj?'Subject: '+subj.trim()+'\n\n':'')+body.trim()+(notes?'\n\n---\nPlay rationale: '+notes.trim():'');
     lOut=li.trim()+(notes?'\n\n---\nPlay rationale: '+notes.trim():'');
-
     so(curTab);
     setSt('genSt','Done',0,1);
   }catch(e){
     setSt('genSt','Request failed - check your API key and try again',1);
   }
-
   btn.disabled=false;
 }
 
@@ -327,7 +385,7 @@ function extr(t,s,e){
 }
 
 function setSt(id,msg,isErr,isOk){
-  var el=document.getElementById(id);
+  var el=document.getElementById(id);if(!el)return;
   el.textContent=msg;
   el.className='st'+(isErr?' err':isOk?' ok':'');
 }
